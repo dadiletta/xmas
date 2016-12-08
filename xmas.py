@@ -7,6 +7,7 @@ from grovepi import *
 from grove_rgb_lcd import *
 import grovepi
 import time
+import datetime
 
 ######################
 ##### LED INFO
@@ -31,7 +32,8 @@ alarmOn = False
 # load a default value for time
 alarm_time = datetime.datetime.now()
 # this alarm only needs hours and minutes
-alarm_time = alarm_time.replace(year=0, month=0, day=0, second=0, microsecond=0)
+alarm_time = alarm_time.replace(year=2017, month=1, day=1, second=0, microsecond=0)
+screen_on = False
 
 ######################
 ##### GROVEPI SETUP
@@ -116,41 +118,66 @@ def wakeup():
 
 def shutoff():
     print('Shutting off')
+    killScreen()
 
 def annoy():
     print('Snooze is over')
 
 def showStatus(highlight):
+    global screen_on
     print('Displaying screen with %s highlighted') % highlight
+    screen_on = True
     if highlight == "time":
         setRGB(150, 75, 0)
-        setText("-> %d : %d <- \nAlarm: %r") % (alarm_time.hour, alarm_time.minute, alarmOn)
+        message = ("-> %s : %s <- \nOn: " + str(alarmOn)) % (alarm_time.strftime("%H"), alarm_time.strftime("%M"))
+        setText(message)
     else:
         setRGB(0, 150, 75)
-        setText("%d : %d \n -> Alarm: %r <-") % (alarm_time.hour, alarm_time.minute, alarmOn)
+        message = ("%s : %s  \n-> On: " + str(alarmOn) + " <-") % (alarm_time.strftime("%H"), alarm_time.strftime("%M"))
+        setText(message)
 
 
 def killScreen():
-    print('Killing the display')
+    global screen_on
+    if screen_on:
+        print('Killing the display')
+        textCommand(0x01) # clear display
+        time.sleep(.05)
+        setRGB(0,0,0)
+        time.sleep(.05)
+        screen_on = False
 
 def showMenu():
+    global alarmOn
+    global screen_on
+    global alarm_time
     menu_start = datetime.datetime.now()
     while datetime.datetime.now() < menu_start + datetime.timedelta(minutes=5):
-        showStatus("time")
-        time.sleep(.2)
-        ## change to edit the toggle
-        if button1 == 1:
+        # this check is to avoid flashing the LCD screen repeatidly
+        if not screen_on:
+            showStatus("time")
+        time.sleep(.1)
+
+        ## change to edit the alarm on/off toggle
+        if grovepi.digitalRead(button1) == 1:
+            screen_on = False
             menu_start = datetime.datetime.now()
             while datetime.datetime.now() < menu_start + datetime.timedelta(minutes=5):
-                showStatus("toggle")
-                time.sleep(.2)
-                if button1 == 1:
-                    return
-                if button2 == 1:
+                if not screen_on:
+                    showStatus("toggle")
+                time.sleep(.5)
+                if grovepi.digitalRead(button1) == 1:
+                    # let's double-check      
+                    time.sleep(.1)
+                    if grovepi.digitalRead(button1) == 1:
+                        return
+                if grovepi.digitalRead(button2) == 1:
                     alarmOn = not alarmOn
+                    screen_on = False
         # advance the minutes of the time
-        if button2 == 1:
+        if grovepi.digitalRead(button2) == 1:
             alarm_time = alarm_time + datetime.timedelta(minutes=1)
+            screen_on = False
 
 
 ######################
@@ -160,25 +187,30 @@ def showMenu():
 # Main program logic follows:
 if __name__ == '__main__':
 
+
     # MAIN APP LOOP
     while True:
+        global alarmOn
+        global alarm_time
         current_time = datetime.datetime.now()
-        current_time = current_time.replace(year=0, month=0, day=0, second=0, microsecond=0)
+        current_time = current_time.replace(year=2017, month=1, day=1, second=0, microsecond=0)
         if alarmOn and current_time == alarm_time:
             wakeup()
         if alarmOn and current_time == (alarm_time + datetime.timedelta(minutes = TIME_TILL_ANNOY)):
             annoy()
         if alarmOn and current_time == (alarm_time + datetime.timedelta(minutes = TIME_TILL_SHUTOFF)):
             shutoff()
-        if button2 == 1:
+        if grovepi.digitalRead(button2) == 1:
             shutoff()
         ## show screen
-        if button1 == 1:
+        if grovepi.digitalRead(button1) == 1:
             showMenu()
 
         killScreen()
-
+        message = ("%s : %s || On: " + str(alarmOn)) % (alarm_time.strftime("%H"), alarm_time.strftime("%M"))
+        print("button1: %d || button2: %d \nAlarm: %s\n") % (grovepi.digitalRead(button1), grovepi.digitalRead(button2), message)
         time.sleep(.5)
+        
 
 
 '''
