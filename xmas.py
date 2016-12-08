@@ -16,10 +16,12 @@ import datetime
 LED_COUNT = 60  # Number of LED pixels.
 LED_PIN1 = 18  # GPIO pin connected to the pixels (must support PWM!).
 LED_PIN2 = 23
-LED_FREQ_HZ = 800000  # LED signal frequency in hertz (usually 800khz)
-LED_DMA = 5  # DMA channel to use for generating signal (try 5)
-LED_BRIGHTNESS = 255  # Set to 0 for darkest and 255 for brightest
+LED_FREQ_HZ = 875000  # LED signal frequency in hertz (usually 800khz)
+LED_DMA = 3  # DMA channel to use for generating signal (try 5)
+LED_BRIGHTNESS = 254  # Set to 0 for darkest and 255 for brightest
 LED_INVERT = False  # True to invert the signal (when using NPN transistor level shift)
+strip1 = Adafruit_NeoPixel(LED_COUNT, LED_PIN1, LED_FREQ_HZ, LED_DMA, LED_INVERT, LED_BRIGHTNESS)
+#strip2 = Adafruit_NeoPixel(LED_COUNT, LED_PIN2, LED_FREQ_HZ, LED_DMA, LED_INVERT, LED_BRIGHTNESS)
 
 ######################
 ##### ALARM TIMES
@@ -28,12 +30,17 @@ LED_INVERT = False  # True to invert the signal (when using NPN transistor level
 TIME_TILL_ANNOY = 10
 TIME_TILL_SHUTOFF = 20
 # alarm toggle
-alarmOn = False
+global alarm_set
+alarm_set = False
 # load a default value for time
+global alarm_time
 alarm_time = datetime.datetime.now()
 # this alarm only needs hours and minutes
 alarm_time = alarm_time.replace(year=2017, month=1, day=1, second=0, microsecond=0)
+global screen_on
 screen_on = False
+global alarm_running
+alarm_running = False
 
 ######################
 ##### GROVEPI SETUP
@@ -52,62 +59,14 @@ grovepi.pinMode(button2,"INPUT")
 ##### LED METHODS
 ######################
 
+# Define functions which animate LEDs in various ways.
 def colorWipe(strip, color, wait_ms=50):
-    """Wipe color across display a pixel at a time."""
-    for i in range(strip.numPixels()):
-        strip.setPixelColor(i, color)
-        strip.show()
-        time.sleep(wait_ms / 1000.0)
-
-def theaterChase(strip, color, wait_ms=50, iterations=10):
-    """Movie theater light style chaser animation."""
-    for j in range(iterations):
-        for q in range(3):
-            for i in range(0, strip.numPixels(), 3):
-                strip.setPixelColor(i + q, color)
-            strip.show()
-            time.sleep(wait_ms / 1000.0)
-            for i in range(0, strip.numPixels(), 3):
-                strip.setPixelColor(i + q, 0)
-
-def wheel(pos):
-    """Generate rainbow colors across 0-255 positions."""
-    if pos < 85:
-        return Color(pos * 3, 255 - pos * 3, 0)
-    elif pos < 170:
-        pos -= 85
-        return Color(255 - pos * 3, 0, pos * 3)
-    else:
-        pos -= 170
-        return Color(0, pos * 3, 255 - pos * 3)
-
-def rainbow(strip, wait_ms=20, iterations=1):
-    """Draw rainbow that fades across all pixels at once."""
-    for j in range(256 * iterations):
+        """Wipe color across display a pixel at a time."""
         for i in range(strip.numPixels()):
-            strip.setPixelColor(i, wheel((i + j) & 255))
-        strip.show()
-        time.sleep(wait_ms / 1000.0)
-
-def rainbowCycle(strip, wait_ms=20, iterations=5):
-    """Draw rainbow that uniformly distributes itself across all pixels."""
-    for j in range(256 * iterations):
-        for i in range(strip.numPixels()):
-            strip.setPixelColor(i, wheel((int(i * 256 / strip.numPixels()) + j) & 255))
-        strip.show()
-        time.sleep(wait_ms / 1000.0)
-
-def theaterChaseRainbow(strip, wait_ms=50):
-    """Rainbow movie theater light style chaser animation."""
-    for j in range(256):
-        for q in range(3):
-            for i in range(0, strip.numPixels(), 3):
-                strip.setPixelColor(i + q, wheel((i + j) % 255))
-            strip.show()
-            time.sleep(wait_ms / 1000.0)
-            for i in range(0, strip.numPixels(), 3):
-                strip.setPixelColor(i + q, 0)
-
+                if i % 5 == 0:
+                        strip.setPixelColor(i, color)
+                        strip.show()
+                        time.sleep(wait_ms/1000.0)
 
 ######################
 ##### ALARM METHODS
@@ -115,10 +74,28 @@ def theaterChaseRainbow(strip, wait_ms=50):
 
 def wakeup():
     print('Waking up')
+    global strip1
+    global alarm_running
+    #global strip2
+    # Intialize the library (must be called once before other functions).
+    strip1.begin()
+    colorWipe(strip1, Color(255, 255, 255))
+    alarm_running = True
+
 
 def shutoff():
+    global strip1
+    #global strip2
+    global alarm_running
+    alarm_running = False
     print('Shutting off')
     killScreen()
+    if strip1:
+        colorWipe(strip1, Color(0, 0, 0), wait_ms=10)
+        #strip1.__del__()
+    #if strip2:
+        #colorWipe(strip2, Color(0, 0, 0), wait_ms=10)
+        #strip2.__del__()
 
 def annoy():
     print('Snooze is over')
@@ -129,11 +106,11 @@ def showStatus(highlight):
     screen_on = True
     if highlight == "time":
         setRGB(150, 75, 0)
-        message = ("-> %s : %s <- \nOn: " + str(alarmOn)) % (alarm_time.strftime("%H"), alarm_time.strftime("%M"))
+        message = ("-> %s : %s <- \nOn: " + str(alarm_set)) % (alarm_time.strftime("%H"), alarm_time.strftime("%M"))
         setText(message)
     else:
         setRGB(0, 150, 75)
-        message = ("%s : %s  \n-> On: " + str(alarmOn) + " <-") % (alarm_time.strftime("%H"), alarm_time.strftime("%M"))
+        message = ("%s : %s  \n-> On: " + str(alarm_set) + " <-") % (alarm_time.strftime("%H"), alarm_time.strftime("%M"))
         setText(message)
 
 
@@ -148,7 +125,7 @@ def killScreen():
         screen_on = False
 
 def showMenu():
-    global alarmOn
+    global alarm_set
     global screen_on
     global alarm_time
     menu_start = datetime.datetime.now()
@@ -172,7 +149,7 @@ def showMenu():
                     if grovepi.digitalRead(button1) == 1:
                         return
                 if grovepi.digitalRead(button2) == 1:
-                    alarmOn = not alarmOn
+                    alarm_set = not alarm_set
                     screen_on = False
         # advance the minutes of the time
         if grovepi.digitalRead(button2) == 1:
@@ -190,15 +167,13 @@ if __name__ == '__main__':
 
     # MAIN APP LOOP
     while True:
-        global alarmOn
-        global alarm_time
         current_time = datetime.datetime.now()
         current_time = current_time.replace(year=2017, month=1, day=1, second=0, microsecond=0)
-        if alarmOn and current_time == alarm_time:
+        if alarm_set and current_time == alarm_time and not alarm_running:
             wakeup()
-        if alarmOn and current_time == (alarm_time + datetime.timedelta(minutes = TIME_TILL_ANNOY)):
+        if alarm_set and current_time == (alarm_time + datetime.timedelta(minutes = TIME_TILL_ANNOY)):
             annoy()
-        if alarmOn and current_time == (alarm_time + datetime.timedelta(minutes = TIME_TILL_SHUTOFF)):
+        if alarm_set and current_time == (alarm_time + datetime.timedelta(minutes = TIME_TILL_SHUTOFF)):
             shutoff()
         if grovepi.digitalRead(button2) == 1:
             shutoff()
@@ -207,7 +182,7 @@ if __name__ == '__main__':
             showMenu()
 
         killScreen()
-        message = ("%s : %s || On: " + str(alarmOn)) % (alarm_time.strftime("%H"), alarm_time.strftime("%M"))
+        message = ("%s : %s || On: " + str(alarm_set)) % (alarm_time.strftime("%H"), alarm_time.strftime("%M"))
         print("button1: %d || button2: %d \nAlarm: %s\n") % (grovepi.digitalRead(button1), grovepi.digitalRead(button2), message)
         time.sleep(.5)
         
