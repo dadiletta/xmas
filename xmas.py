@@ -1,12 +1,13 @@
 ######################
 ##### LED ALARM CLOCK - Using Adafruit's LED strips and Dexter Industry's GrovePi
-##### TODO: Show clock and alarm when idle
 ##### TODO: Adjust controls so it's easier to toggle
 ##### TODO: Add IFTTT post on each event
 ##### TODO: Implement the annoy method
 ##### TODO: Switch clock to 12-hour
 ##### TODO: Rewire LED strip with longer cables, solder into prototype board
 ##### TODO-REACH: Improve LED controls so specific LEDs can be managed
+##### TODO-REACH: Add a temp sensor
+##### TODO-REACH: Replace while-loop with event handlers?
 ######################
 
 from neopixel import *
@@ -113,9 +114,13 @@ def showStatus(highlight):
     print('Displaying screen with %s highlighted') % highlight
     screen_on = True
     # change display to help indicate what is being selected
-    if highlight == "time":
+    if highlight == "hour":
         setRGB(150, 75, 0)
-        msg = ("-> %s : %s <- \nOn: " + str(alarm_set)) % (alarm_time.strftime("%H"), alarm_time.strftime("%M"))
+        msg = ("--> %s : %s \nOn: " + str(alarm_set)) % (alarm_time.strftime("%H"), alarm_time.strftime("%M"))
+        setText(msg)
+    elif highlight == "min":
+        setRGB(0, 75, 150)
+        msg = ("%s : %s <-- \nOn: " + str(alarm_set)) % (alarm_time.strftime("%H"), alarm_time.strftime("%M"))
         setText(msg)
     else:
         setRGB(0, 150, 75)
@@ -137,41 +142,64 @@ def killScreen():
         # update global boolean to help track status
         screen_on = False
 
-# display options
-def showMenu():
+# menu logic, careful options
+def menu():
     # load our variables; because defining scope is weird
     global alarm_set, screen_on, alarm_time
     # timer to auto shut off the screen after 5 min
     menu_start = datetime.datetime.now()
+    # EDITING HOURS
     while datetime.datetime.now() < menu_start + datetime.timedelta(minutes=5):
-        # this check is to avoid flashing the LCD screen repeatidly
+        # this check is to avoid flashing the LCD screen repeatedly
         if not screen_on:
-            showStatus("time")
-        time.sleep(.1)
+            showStatus("hour")
+        time.sleep(.4)
 
-        # change to edit the alarm on/off toggle
+        # BUTTON2: advance the hours of the time
+        if grovepi.digitalRead(button2) == 1:
+            alarm_time = alarm_time + datetime.timedelta(hours=1)
+            screen_on = False
+
+        # BUTTON1: change to edit minutes
         if grovepi.digitalRead(button1) == 1:
             screen_on = False
             menu_start = datetime.datetime.now()
+
+            # EDITING MINUTES
             while datetime.datetime.now() < menu_start + datetime.timedelta(minutes=5):
                 if not screen_on:
-                    showStatus("toggle")
-                time.sleep(.5)
-                # button1 will exit
-                if grovepi.digitalRead(button1) == 1:
-                    # let's double-check      
-                    time.sleep(.1)
-                    # exit the menu
-                    if grovepi.digitalRead(button1) == 1:
-                        return
-                # button2 toggles the alarm
+                    showStatus("min")
+                time.sleep(.4)
+
+                # BUTTON2: advance the minutes
                 if grovepi.digitalRead(button2) == 1:
-                    alarm_set = not alarm_set
+                    alarm_time = alarm_time + datetime.timedelta(minutes=1)
                     screen_on = False
-        # advance the minutes of the time
-        if grovepi.digitalRead(button2) == 1:
-            alarm_time = alarm_time + datetime.timedelta(minutes=1)
-            screen_on = False
+
+                # BUTTON1: change to edit alarm on/off toggle
+                if grovepi.digitalRead(button1) == 1:
+                    screen_on = False
+                    menu_start = datetime.datetime.now()
+
+                    # EDITING ALARM ON
+                    while datetime.datetime.now() < menu_start + datetime.timedelta(minutes=5):
+                        if not screen_on:
+                            showStatus("toggle")
+                        time.sleep(.4)
+
+                        # BUTTON1: closes method (after double-chec)
+                        if grovepi.digitalRead(button1) == 1:
+                            # let's double-check
+                            time.sleep(.1)
+                            # exit the menu
+                            if grovepi.digitalRead(button1) == 1:
+                                return
+
+                        # BUTTON2: toggles the alarm
+                        if grovepi.digitalRead(button2) == 1:
+                            alarm_set = not alarm_set
+                            screen_on = False
+
 
 
 ######################
@@ -181,16 +209,19 @@ def showMenu():
 # Main program logic follows:
 if __name__ == '__main__':
 
+    count = 0
+
     # MAIN APP LOOP
     while True:
 
         current_time = datetime.datetime.now()
         current_time = current_time.replace(year=2017, month=1, day=1, second=0, microsecond=0)
 
-        # display current time
-        clock = ("Time: %s \nAlarm: %s On:" + str(alarm_set)) % \
-                (alarm_time.strftime("%I:%M %p"), current_time.strftime("%I:%M %p"))
-        setText(clock)
+        # display current time, count used to avoid screen flashing
+        if count % 110 == 0:
+            clock = ("Time: %s \nAlarm: %s On:" + str(alarm_set)) % \
+                    (alarm_time.strftime("%I:%M %p"), current_time.strftime("%I:%M %p"))
+            setText(clock)
 
         # trigger alarm
         if alarm_set and current_time == alarm_time and not alarm_running and not shhh:
@@ -206,7 +237,7 @@ if __name__ == '__main__':
             shutoff()
         # show screen options
         if grovepi.digitalRead(button1) == 1:
-            showMenu()
+            menu()
 
         if current_time > alarm_time:
             shhh = False
@@ -216,3 +247,6 @@ if __name__ == '__main__':
         print("button1: %d || button2: %d \nAlarm: %s\n") % (grovepi.digitalRead(button1), grovepi.digitalRead(button2), message)
         # the longer this is, the longer you have to hold the button
         time.sleep(.5)
+        count += 1
+        if count > 1000:
+            count = 0
