@@ -85,16 +85,15 @@ def colorWipe(strip, color, wait_ms=50):
 
 def wakeup():
     print('Waking up')
-    global strip1, alarm_running, strip2
+    global strip1, alarm_running
     # Initialize the neopixel library (must be called once before other functions).
     strip1.begin()
-    # strip2.begin()
     colorWipe(strip1, Color(255, 255, 255))
     alarm_running = True
 
 
 def shutoff():
-    global strip1, strip2, alarm_running, shhh
+    global strip1, alarm_running, shhh
     alarm_running = False
     # prevent alarm from coming right back on
     shhh = True
@@ -113,6 +112,7 @@ def showStatus(highlight):
     global screen_on
     print('Displaying screen with %s highlighted') % highlight
     screen_on = True
+    # change display to help indicate what is being selected
     if highlight == "time":
         setRGB(150, 75, 0)
         msg = ("-> %s : %s <- \nOn: " + str(alarm_set)) % (alarm_time.strftime("%H"), alarm_time.strftime("%M"))
@@ -127,10 +127,14 @@ def killScreen():
     global screen_on
     if screen_on:
         print('Killing the display')
+
+        # this code taken from Dexter Industries's GrovePi examples
         textCommand(0x01)  # clear display
         time.sleep(.05)
         setRGB(0,0,0)
         time.sleep(.05)
+
+        # update global boolean to help track status
         screen_on = False
 
 # display options
@@ -183,6 +187,11 @@ if __name__ == '__main__':
         current_time = datetime.datetime.now()
         current_time = current_time.replace(year=2017, month=1, day=1, second=0, microsecond=0)
 
+        # display current time
+        clock = ("Time: %s \nAlarm: %s:%s On:" + str(alarm_set)) % \
+                (alarm_time.strftime("%I:%M %p"), current_time.strftime("%I:%M %p"))
+        setText(clock)
+
         # trigger alarm
         if alarm_set and current_time == alarm_time and not alarm_running and not shhh:
             wakeup()
@@ -193,7 +202,7 @@ if __name__ == '__main__':
         if alarm_set and alarm_running and current_time == (alarm_time + datetime.timedelta(minutes = TIME_TILL_SHUTOFF)):
             shutoff()
         # button2 disables the alarm
-        if grovepi.digitalRead(button2) == 1:
+        if grovepi.digitalRead(button2) == 1 and alarm_running:
             shutoff()
         # show screen options
         if grovepi.digitalRead(button1) == 1:
