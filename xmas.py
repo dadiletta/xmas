@@ -1,6 +1,12 @@
 ######################
 ##### LED ALARM CLOCK - Using Adafruit's LED strips and Dexter Industry's GrovePi
-##### TODO: Solve this weird global issue. Switch to instance variables?
+##### TODO: Show clock and alarm when idle
+##### TODO: Adjust controls so it's easier to toggle
+##### TODO: Add IFTTT post on each event
+##### TODO: Implement the annoy method
+##### TODO: Switch clock to 12-hour
+##### TODO: Rewire LED strip with longer cables, solder into prototype board
+##### TODO-REACH: Improve LED controls so specific LEDs can be managed
 ######################
 
 from neopixel import *
@@ -9,25 +15,25 @@ from grove_rgb_lcd import *
 import grovepi
 import time
 import datetime
-import RPi.GPIO as GPIO
 
-# relay attempt 1
-GPIO.setmode(GPIO.BCM)
-GPIO.setup(26, GPIO.OUT)
-GPIO.output(26, GPIO.LOW)
+
+# Canceled using relay
+# import RPi.GPIO as GPIO
+# GPIO.setmode(GPIO.BCM)
+# GPIO.setup(26, GPIO.OUT)
+# GPIO.output(26, GPIO.LOW)
+
 ######################
 ##### LED INFO
 ######################
 
 LED_COUNT = 60  # Number of LED pixels.
-LED_PIN1 = 18  # GPIO pin connected to the pixels (must support PWM!).
-LED_PIN2 = 23
+LED_PIN = 18  # GPIO pin connected to the pixels (must support PWM!).
 LED_FREQ_HZ = 875000  # LED signal frequency in hertz (usually 800khz)
 LED_DMA = 3  # DMA channel to use for generating signal (try 5)
 LED_BRIGHTNESS = 254  # Set to 0 for darkest and 255 for brightest
 LED_INVERT = False  # True to invert the signal (when using NPN transistor level shift)
-strip1 = Adafruit_NeoPixel(LED_COUNT, LED_PIN1, LED_FREQ_HZ, LED_DMA, LED_INVERT, LED_BRIGHTNESS)
-strip2 = Adafruit_NeoPixel(LED_COUNT, LED_PIN2, LED_FREQ_HZ, LED_DMA, LED_INVERT, LED_BRIGHTNESS)
+strip1 = Adafruit_NeoPixel(LED_COUNT, LED_PIN, LED_FREQ_HZ, LED_DMA, LED_INVERT, LED_BRIGHTNESS)
 
 ######################
 ##### ALARM TIMES
@@ -52,13 +58,13 @@ shhh = False
 ######################
 
 buzzer = 6
-grovepi.pinMode(buzzer,"OUTPUT")
+grovepi.pinMode(buzzer, "OUTPUT")
 
 # Connect the Grove Button to digital port D8
 button1 = 8
 button2 = 7
-grovepi.pinMode(button1,"INPUT")
-grovepi.pinMode(button2,"INPUT")
+grovepi.pinMode(button1, "INPUT")
+grovepi.pinMode(button2, "INPUT")
 
 ######################
 ##### LED METHODS
@@ -80,12 +86,11 @@ def colorWipe(strip, color, wait_ms=50):
 def wakeup():
     print('Waking up')
     global strip1, alarm_running, strip2
-    # Intialize the neopixel library (must be called once before other functions).
+    # Initialize the neopixel library (must be called once before other functions).
     strip1.begin()
-    strip2.begin()
+    # strip2.begin()
     colorWipe(strip1, Color(255, 255, 255))
     alarm_running = True
-    # TODO: trigger relay for heater
 
 
 def shutoff():
@@ -100,13 +105,12 @@ def shutoff():
     # turn off the lights
     if strip1:
         colorWipe(strip1, Color(0, 0, 0), wait_ms=10)
-    if strip2:
-        colorWipe(strip2, Color(0, 0, 0), wait_ms=10)
+    # if strip2:
+        # colorWipe(strip2, Color(0, 0, 0), wait_ms=10)
 
 def annoy():
     print('Snooze is over')
-    # TODO: Buzzer
-    # TODO: Rainbow
+
 
 # send message to GrovePi LCD screen
 def showStatus(highlight):
@@ -115,19 +119,19 @@ def showStatus(highlight):
     screen_on = True
     if highlight == "time":
         setRGB(150, 75, 0)
-        message = ("-> %s : %s <- \nOn: " + str(alarm_set)) % (alarm_time.strftime("%H"), alarm_time.strftime("%M"))
-        setText(message)
+        msg = ("-> %s : %s <- \nOn: " + str(alarm_set)) % (alarm_time.strftime("%H"), alarm_time.strftime("%M"))
+        setText(msg)
     else:
         setRGB(0, 150, 75)
-        message = ("%s : %s  \n-> On: " + str(alarm_set) + " <-") % (alarm_time.strftime("%H"), alarm_time.strftime("%M"))
-        setText(message)
+        msg = ("%s : %s  \n-> On: " + str(alarm_set) + " <-") % (alarm_time.strftime("%H"), alarm_time.strftime("%M"))
+        setText(msg)
 
 
 def killScreen():
     global screen_on
     if screen_on:
         print('Killing the display')
-        textCommand(0x01) # clear display
+        textCommand(0x01)  # clear display
         time.sleep(.05)
         setRGB(0,0,0)
         time.sleep(.05)
@@ -145,7 +149,7 @@ def showMenu():
             showStatus("time")
         time.sleep(.1)
 
-        ## change to edit the alarm on/off toggle
+        # change to edit the alarm on/off toggle
         if grovepi.digitalRead(button1) == 1:
             screen_on = False
             menu_start = datetime.datetime.now()
@@ -183,7 +187,6 @@ if __name__ == '__main__':
 
         current_time = datetime.datetime.now()
         current_time = current_time.replace(year=2017, month=1, day=1, second=0, microsecond=0)
-        # TODO: Prevent alarm from restarting after being disabled
 
         # trigger floor heater in advance of alarm
         if alarm_set and current_time == (alarm_time - datetime.timedelta(minutes = TIME_TO_PREHEAT)):
@@ -202,7 +205,7 @@ if __name__ == '__main__':
         # button2 disables the alarm
         if grovepi.digitalRead(button2) == 1:
             shutoff()
-        ## show screen options
+        # show screen options
         if grovepi.digitalRead(button1) == 1:
             showMenu()
 
