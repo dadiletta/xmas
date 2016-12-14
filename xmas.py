@@ -188,7 +188,7 @@ if __name__ == '__main__':
         current_time = current_time.replace(year=2017, month=1, day=1, second=0, microsecond=0)
 
         # display current time
-        clock = ("Time: %s \nAlarm: %s:%s On:" + str(alarm_set)) % \
+        clock = ("Time: %s \nAlarm: %s On:" + str(alarm_set)) % \
                 (alarm_time.strftime("%I:%M %p"), current_time.strftime("%I:%M %p"))
         setText(clock)
 
