@@ -71,6 +71,7 @@ grovepi.pinMode(button2, "INPUT")
 ##### LED METHODS
 ######################
 
+
 # Define functions which animate LEDs in various ways.
 def colorWipe(strip, color, wait_ms=50):
         """Wipe color across display a pixel at a time."""
@@ -84,6 +85,7 @@ def colorWipe(strip, color, wait_ms=50):
 ##### ALARM METHODS
 ######################
 
+
 def wakeup():
     print('Waking up')
     global strip1, alarm_running
@@ -95,14 +97,14 @@ def wakeup():
 
 def shutoff():
     global strip1, alarm_running, shhh
-    alarm_running = False
+    alarm_running, shhh = False
     # prevent alarm from coming right back on
-    shhh = True
     print('Shutting off')
     killScreen()
     # turn off the lights
     if strip1:
         colorWipe(strip1, Color(0, 0, 0), wait_ms=10)
+
 
 def annoy():
     print('Snooze is over')
@@ -142,10 +144,13 @@ def killScreen():
         # update global boolean to help track status
         screen_on = False
 
+
 # menu logic, careful options
 def menu():
     # load our variables; because defining scope is weird
-    global alarm_set, screen_on, alarm_time
+    global alarm_set, shhh, screen_on, alarm_time
+    # disable the hold on (re)starting the alarm
+    shhh = False
     # timer to auto shut off the screen after 5 min
     menu_start = datetime.datetime.now()
     # EDITING HOURS
@@ -187,7 +192,7 @@ def menu():
                             showStatus("toggle")
                         time.sleep(.4)
 
-                        # BUTTON1: closes method (after double-chec)
+                        # BUTTON1: closes method (after double-check)
                         if grovepi.digitalRead(button1) == 1:
                             # let's double-check
                             time.sleep(.1)
@@ -218,7 +223,7 @@ if __name__ == '__main__':
         current_time = current_time.replace(year=2017, month=1, day=1, second=0, microsecond=0)
 
         # display current time, count used to avoid screen flashing
-        if count % 110 == 0:
+        if count % 20 == 0:
             clock = ("Time: %s \nAlarm: %s On:" + str(alarm_set)) % \
                     (alarm_time.strftime("%I:%M %p"), current_time.strftime("%I:%M %p"))
             setText(clock)
@@ -227,10 +232,10 @@ if __name__ == '__main__':
         if alarm_set and current_time == alarm_time and not alarm_running and not shhh:
             wakeup()
         # annoy you until awake
-        if alarm_set and alarm_running and current_time == (alarm_time + datetime.timedelta(minutes = TIME_TILL_ANNOY)):
+        if alarm_set and alarm_running and current_time == (alarm_time + datetime.timedelta(minutes=TIME_TILL_ANNOY)):
             annoy()
         # auto shut-off
-        if alarm_set and alarm_running and current_time == (alarm_time + datetime.timedelta(minutes = TIME_TILL_SHUTOFF)):
+        if alarm_set and alarm_running and current_time == (alarm_time + datetime.timedelta(minutes=TIME_TILL_SHUTOFF)):
             shutoff()
         # button2 disables the alarm
         if grovepi.digitalRead(button2) == 1 and alarm_running:
@@ -243,10 +248,16 @@ if __name__ == '__main__':
             shhh = False
 
         killScreen()
+
+        # console output for debugging
         message = ("%s : %s || On: " + str(alarm_set)) % (alarm_time.strftime("%H"), alarm_time.strftime("%M"))
-        print("button1: %d || button2: %d \nAlarm: %s\n") % (grovepi.digitalRead(button1), grovepi.digitalRead(button2), message)
+        print("button1: %d || button2: %d \nAlarm: %s\n") % (grovepi.digitalRead(button1),
+                                                             grovepi.digitalRead(button2), message)
+
         # the longer this is, the longer you have to hold the button
         time.sleep(.5)
+
+        # counter used as sloppy way to prevent screen flashing in main loop
         count += 1
         if count > 1000:
             count = 0
