@@ -100,13 +100,9 @@ def shutoff():
     shhh = True
     print('Shutting off')
     killScreen()
-    # turn off the heater
-    GPIO.output(26, GPIO.LOW)
     # turn off the lights
     if strip1:
         colorWipe(strip1, Color(0, 0, 0), wait_ms=10)
-    # if strip2:
-        # colorWipe(strip2, Color(0, 0, 0), wait_ms=10)
 
 def annoy():
     print('Snooze is over')
@@ -181,17 +177,11 @@ def showMenu():
 # Main program logic follows:
 if __name__ == '__main__':
 
-
     # MAIN APP LOOP
     while True:
 
         current_time = datetime.datetime.now()
         current_time = current_time.replace(year=2017, month=1, day=1, second=0, microsecond=0)
-
-        # trigger floor heater in advance of alarm
-        if alarm_set and current_time == (alarm_time - datetime.timedelta(minutes = TIME_TO_PREHEAT)):
-            # try to trigger the heater
-            GPIO.output(26, GPIO.HIGH)
 
         # trigger alarm
         if alarm_set and current_time == alarm_time and not alarm_running and not shhh:
