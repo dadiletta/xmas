@@ -97,7 +97,8 @@ def wakeup():
 
 def shutoff():
     global strip1, alarm_running, shhh
-    alarm_running, shhh = False
+    alarm_running = False
+    shhh = False
     # prevent alarm from coming right back on
     print('Shutting off')
     killScreen()
@@ -225,7 +226,7 @@ if __name__ == '__main__':
         # display current time, count used to avoid screen flashing
         if count % 20 == 0:
             clock = ("Time: %s \nAlarm: %s On:" + str(alarm_set)) % \
-                    (alarm_time.strftime("%I:%M %p"), current_time.strftime("%I:%M %p"))
+                    (current_time.strftime("%I:%M %p"), alarm_time.strftime("%I:%M %p"))
             setText(clock)
 
         # trigger alarm
