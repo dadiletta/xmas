@@ -52,7 +52,7 @@ alarm_set = False
 # load a default value for time
 alarm_time = datetime.datetime.now()
 # this alarm only needs hours and minutes
-alarm_time = alarm_time.replace(years=2017, months=1, days=1, seconds=0, microseconds=0)
+alarm_time = alarm_time.replace(year=2017, month=1, day=1, second=0, microsecond=0)
 screen_on = False
 alarm_running = False
 # shhh is used to prevent the alarm from coming right back on when silenced
@@ -240,7 +240,7 @@ if __name__ == '__main__':
     while True:
 
         current_time = datetime.datetime.now()
-        current_time = current_time.replace(years=2017, months=1, days=1, seconds=0, microseconds=0)
+        current_time = current_time.replace(year=2017, month=1, day=1, second=0, microsecond=0)
 
         # display current time, (count used to avoid screen flashing)
         if count % 20 == 0:
