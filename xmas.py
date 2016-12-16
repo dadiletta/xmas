@@ -1,13 +1,13 @@
 ######################
 ##### LED ALARM CLOCK - Using Adafruit's LED strips and Dexter Industry's GrovePi
-##### TODO: Adjust controls so it's easier to toggle
 ##### TODO: Add IFTTT post on each event
 ##### TODO: Implement the annoy method
-##### TODO: Switch clock to 12-hour
-##### TODO: Rewire LED strip with longer cables, solder into prototype board
-##### TODO-REACH: Improve LED controls so specific LEDs can be managed
-##### TODO-REACH: Add a temp sensor
-##### TODO-REACH: Replace while-loop with event handlers?
+##### TODO: Switch clock to 12-hour on alarm set
+##### TODO: Verify controls are easier to toggle
+##### TODO: Add a temp sensor
+##### TODO: Help! Replace while-loop with event handlers?
+##### TODO: Help! Improve LED controls so specific LEDs can be managed
+##### TODO: Help! Rewire LED strip with longer cables, solder into prototype board
 ######################
 
 from neopixel import *
@@ -16,7 +16,11 @@ from grove_rgb_lcd import *
 import grovepi
 import time
 import datetime
+import requests
+import Private
 
+
+MAKER_SECRET = Private.Private.MAKER_SECRET
 
 # Canceled using relay
 # import RPi.GPIO as GPIO
@@ -93,6 +97,9 @@ def wakeup():
     strip1.begin()
     colorWipe(strip1, Color(255, 255, 255))
     alarm_running = True
+    # Post to IFTTT on the Maker channel
+    payload = "{ 'value1' : 'wakeup', 'value2' : 'hello', 'value3' : 'hello'}"
+    requests.post("https://maker.ifttt.com/trigger/xmas/with/key/" + MAKER_SECRET, data=payload)
 
 
 def shutoff():
@@ -223,7 +230,7 @@ if __name__ == '__main__':
         current_time = datetime.datetime.now()
         current_time = current_time.replace(year=2017, month=1, day=1, second=0, microsecond=0)
 
-        # display current time, count used to avoid screen flashing
+        # display current time, (count used to avoid screen flashing)
         if count % 20 == 0:
             clock = ("Time: %s \nAlarm: %s On:" + str(alarm_set)) % \
                     (current_time.strftime("%I:%M %p"), alarm_time.strftime("%I:%M %p"))
