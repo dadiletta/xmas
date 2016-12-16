@@ -192,7 +192,7 @@ def menu():
                 # BUTTON2: advance the minutes
                 if grovepi.digitalRead(button2) == 1:
                     if alarm_time.strftime("%M") == "59":
-                        alarm_time.replace(minutes=0)
+                        alarm_time.replace(minute=0)
                     else:
                         alarm_time = alarm_time + datetime.timedelta(minutes=1)
                     screen_on = False
