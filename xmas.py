@@ -99,7 +99,7 @@ def wakeup():
     alarm_running = True
     # Post to IFTTT on the Maker channel
     payload = "{ 'value1' : 'wakeup', 'value2' : 'hello', 'value3' : 'hello'}"
-    requests.post("https://maker.ifttt.com/trigger/xmas/with/key/" + MAKER_SECRET, data=payload)
+    requests.post("https://maker.ifttt.com/trigger/wakeup/with/key/" + MAKER_SECRET, data=payload)
 
 
 def shutoff():
