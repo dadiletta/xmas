@@ -1,6 +1,6 @@
 ######################
 ##### LED ALARM CLOCK - Using Adafruit's LED strips and Dexter Industry's GrovePi
-##### TODO: Add IFTTT post on each event
+##### TODO: Fix SHHHH... done?
 ##### TODO: Implement the annoy method
 ##### TODO: Switch clock to 12-hour on alarm set
 ##### TODO: Verify controls are easier to toggle
@@ -52,7 +52,7 @@ alarm_set = False
 # load a default value for time
 alarm_time = datetime.datetime.now()
 # this alarm only needs hours and minutes
-alarm_time = alarm_time.replace(year=2017, month=1, day=1, second=0, microsecond=0)
+alarm_time = alarm_time.replace(years=2017, months=1, days=1, seconds=0, microseconds=0)
 screen_on = False
 alarm_running = False
 # shhh is used to prevent the alarm from coming right back on when silenced
@@ -105,17 +105,22 @@ def wakeup():
 def shutoff():
     global strip1, alarm_running, shhh
     alarm_running = False
-    shhh = False
+    shhh = True
     # prevent alarm from coming right back on
     print('Shutting off')
     killScreen()
     # turn off the lights
     if strip1:
         colorWipe(strip1, Color(0, 0, 0), wait_ms=10)
+    payload = "{ 'value1' : 'wakeup', 'value2' : 'hello', 'value3' : 'hello'}"
+    requests.post("https://maker.ifttt.com/trigger/shutoff/with/key/" + MAKER_SECRET, data=payload)
+
 
 
 def annoy():
     print('Snooze is over')
+    payload = "{ 'value1' : 'hello', 'value2' : 'hello', 'value3' : 'hello'}"
+    requests.post("https://maker.ifttt.com/trigger/annoy/with/key/" + MAKER_SECRET, data=payload)
 
 
 # send message to GrovePi LCD screen
@@ -156,12 +161,12 @@ def killScreen():
 # menu logic, careful options
 def menu():
     # load our variables; because defining scope is weird
-    global alarm_set, shhh, screen_on, alarm_time
+    global alarm_set, shhh, screen_on, alarm_time, alarm_running
     # disable the hold on (re)starting the alarm
     shhh = False
     # timer to auto shut off the screen after 5 min
     menu_start = datetime.datetime.now()
-    # EDITING HOURS
+    # INITIAL STATE: EDITING HOURS
     while datetime.datetime.now() < menu_start + datetime.timedelta(minutes=5):
         # this check is to avoid flashing the LCD screen repeatedly
         if not screen_on:
@@ -178,7 +183,7 @@ def menu():
             screen_on = False
             menu_start = datetime.datetime.now()
 
-            # EDITING MINUTES
+            # STATE: EDITING MINUTES
             while datetime.datetime.now() < menu_start + datetime.timedelta(minutes=5):
                 if not screen_on:
                     showStatus("min")
@@ -186,15 +191,19 @@ def menu():
 
                 # BUTTON2: advance the minutes
                 if grovepi.digitalRead(button2) == 1:
-                    alarm_time = alarm_time + datetime.timedelta(minutes=1)
+                    if alarm_time.strftime("%M") == "59":
+                        alarm_time.replace(minutes=0)
+                    else:
+                        alarm_time = alarm_time + datetime.timedelta(minutes=1)
                     screen_on = False
 
                 # BUTTON1: change to edit alarm on/off toggle
                 if grovepi.digitalRead(button1) == 1:
+                    # screen_on False so it will refresh display
                     screen_on = False
                     menu_start = datetime.datetime.now()
 
-                    # EDITING ALARM ON
+                    # STATE: EDITING ALARM ON
                     while datetime.datetime.now() < menu_start + datetime.timedelta(minutes=5):
                         if not screen_on:
                             showStatus("toggle")
@@ -211,7 +220,10 @@ def menu():
                         # BUTTON2: toggles the alarm
                         if grovepi.digitalRead(button2) == 1:
                             alarm_set = not alarm_set
+                            # screen_on False so it refreshes display
                             screen_on = False
+                            shhh = False
+                            alarm_running = False
 
 
 
@@ -228,7 +240,7 @@ if __name__ == '__main__':
     while True:
 
         current_time = datetime.datetime.now()
-        current_time = current_time.replace(year=2017, month=1, day=1, second=0, microsecond=0)
+        current_time = current_time.replace(years=2017, months=1, days=1, seconds=0, microseconds=0)
 
         # display current time, (count used to avoid screen flashing)
         if count % 20 == 0:
