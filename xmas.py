@@ -1,9 +1,7 @@
 ######################
 ##### LED ALARM CLOCK - Using Adafruit's LED strips and Dexter Industry's GrovePi
-##### TODO: Fix SHHHH... done?
 ##### TODO: Implement the annoy method
 ##### TODO: Switch clock to 12-hour on alarm set
-##### TODO: Verify controls are easier to toggle
 ##### TODO: Add a temp sensor
 ##### TODO: Help! Replace while-loop with event handlers?
 ##### TODO: Help! Improve LED controls so specific LEDs can be managed
@@ -247,6 +245,7 @@ if __name__ == '__main__':
             clock = ("Time: %s \nAlarm: %s On:" + str(alarm_set)) % \
                     (current_time.strftime("%I:%M %p"), alarm_time.strftime("%I:%M %p"))
             setText(clock)
+            setRGB(0, 0, 5)
 
         # trigger alarm
         if alarm_set and current_time == alarm_time and not alarm_running and not shhh:
@@ -258,7 +257,7 @@ if __name__ == '__main__':
         if alarm_set and alarm_running and current_time == (alarm_time + datetime.timedelta(minutes=TIME_TILL_SHUTOFF)):
             shutoff()
         # button2 disables the alarm
-        if grovepi.digitalRead(button2) == 1 and alarm_running:
+        if grovepi.digitalRead(button2) == 1:
             shutoff()
         # show screen options
         if grovepi.digitalRead(button1) == 1:
