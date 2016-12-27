@@ -2,6 +2,7 @@
 ##### LED ALARM CLOCK - Using Adafruit's LED strips and Dexter Industry's GrovePi
 ##### TODO: Implement the annoy method
 ##### TODO: Switch clock to 12-hour on alarm set
+##### TODO: Put IFTTT's web request in a try-catch to avoid a crash if internet is out
 ##### TODO: Add a temp sensor
 ##### TODO: Help! Replace while-loop with event handlers?
 ##### TODO: Help! Improve LED controls so specific LEDs can be managed
@@ -50,7 +51,7 @@ alarm_set = False
 # load a default value for time
 alarm_time = datetime.datetime.now()
 # this alarm only needs hours and minutes
-alarm_time = alarm_time.replace(year=2017, month=1, day=1, second=0, microsecond=0)
+alarm_time = alarm_time.replace(year=2017, month=1, day=1, hour=8, second=0, microsecond=0)
 screen_on = False
 alarm_running = False
 # shhh is used to prevent the alarm from coming right back on when silenced
@@ -174,6 +175,8 @@ def menu():
         # BUTTON2: advance the hours of the time
         if grovepi.digitalRead(button2) == 1:
             alarm_time = alarm_time + datetime.timedelta(hours=1)
+            # avoid logic error where advancing hour sets the alarm to the next day
+            alarm_time = alarm_time.replace(year=2017, month=1, day=1, second=0, microsecond=0)
             screen_on = False
 
         # BUTTON1: change to edit minutes
@@ -193,6 +196,7 @@ def menu():
                         alarm_time = alarm_time.replace(minute=0)
                     else:
                         alarm_time = alarm_time + datetime.timedelta(minutes=1)
+                    alarm_time = alarm_time.replace(year=2017, month=1, day=1, second=0, microsecond=0)
                     screen_on = False
 
                 # BUTTON1: change to edit alarm on/off toggle
