@@ -245,7 +245,7 @@ if __name__ == '__main__':
             clock = ("Time: %s \nAlarm: %s On:" + str(alarm_set)) % \
                     (current_time.strftime("%I:%M %p"), alarm_time.strftime("%I:%M %p"))
             setText(clock)
-            setRGB(0, 0, 5)
+            setRGB(0, 0, 15)
 
         # trigger alarm
         if alarm_set and current_time == alarm_time and not alarm_running and not shhh:
